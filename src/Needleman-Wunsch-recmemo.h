@@ -8,6 +8,25 @@
 
 #include <stdlib.h> /* for size_t */
 
+/**
+ * \brief Calculates the minimum of three values.
+ *
+ * This macro evaluates and returns the smallest of three values.
+ *
+ * \param a The first value.
+ * \param b The second value.
+ * \param c The third value.
+ */
+#define MIN(a, b, c) ((a < b && a < c) ? a : ((b < c) ? b : c))
+
+/**
+ * \brief Returns the maximum of two values.
+ * \param a The first value.
+ * \param b The second value.
+ * \return The larger of the two values.
+ */
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
 /*
  * Costs for operations on canonical bases
  * Three  operations: insertion and sustitution of one base by an another 
@@ -27,6 +46,14 @@
  *  \brief Cost of insertion of a canonical base 
  */
 #define INSERTION_COST		2
+
+/** 
+ * \def K
+ * \brief Size of the block for processing
+ */
+#define K 64
+
+#define S 128
 
 /********************************************************************************
  * Recursive implementation of NeedlemanWunsch with memoization
@@ -49,3 +76,8 @@
  */
 long EditDistance_NW_Rec(char* A, size_t lengthA, char* B, size_t lengthB);
 
+long EditDistance_NW_Iter(char* A, size_t lengthA, char* B, size_t lengthB);
+
+long EditDistance_NW_Aware(char* A, size_t lengthA, char* B, size_t lengthB);
+
+long EditDistance_NW_Oblivious(char* A, size_t lengthA, char* B, size_t lengthB);

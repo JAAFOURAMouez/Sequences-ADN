@@ -137,3 +137,210 @@ long EditDistance_NW_Rec(char* A, size_t lengthA, char* B, size_t lengthB)
    return res ;
 }
 
+long EditDistance_NW_Iter(char *A, size_t lengthA, char *B, size_t lengthB)
+{
+   _init_base_match();
+   size_t sizeM = lengthA;
+   size_t sizeN = lengthB;
+
+   /* Initialisation of arrays to store intermediate results */
+   long *columnM = malloc((sizeM + 1) * sizeof(long));
+   long *columnN = malloc((sizeN + 1) * sizeof(long));
+   columnM[sizeM] = 0;
+   columnN[sizeN] = 0;
+
+   for (int i = sizeM - 1; i >= 0; i--)
+   {
+      columnM[i] = (isBase(A[i]) ? INSERTION_COST : 0) + columnM[i + 1];
+   }
+
+   for (int j = sizeN - 1; j >= 0; j--)
+   {
+      columnN[j] = (isBase(B[j]) ? INSERTION_COST : 0) + columnN[j + 1];
+   }
+
+   int col_index = sizeN - 1;
+   long right_element = columnN[sizeN - 1];
+   long diagonal_element = columnN[sizeN];
+   long result = 0;
+   long mismatch_cost = 0;
+
+   while (col_index >= 0)
+   {
+      if (!isBase(B[col_index]))
+      {
+         columnN[col_index + 1] = columnM[0];
+         col_index--;
+      }
+      else
+      {
+         right_element = columnN[col_index];
+         diagonal_element = columnN[col_index + 1];
+         int row_index = sizeM - 1;
+
+         while (row_index >= 0)
+         {
+            if (!isBase(A[row_index])){
+               columnM[row_index] = right_element;
+               row_index--;
+            }else{
+               mismatch_cost = (isUnknownBase(A[row_index]) || !isSameBase(A[row_index], B[col_index])) ? 1 : 0;
+               result = MIN(2 + columnM[row_index], 2 + right_element, diagonal_element + mismatch_cost);
+               diagonal_element = columnM[row_index];
+               right_element = result;
+               columnM[row_index] = result;
+               row_index--;
+            }
+         }
+         columnN[col_index + 1] = diagonal_element;
+         col_index--;
+      }
+   }
+
+   long final_result = columnM[0];
+   free(columnM);
+   free(columnN);
+   return final_result;
+}
+
+long EditDistance_NW_Aware(char *A, size_t lengthA, char *B, size_t lengthB){
+   _init_base_match();
+   size_t m = lengthA;
+   size_t n = lengthB;
+   long *columnM = malloc((m + 1) * sizeof(long));
+   long *columnN = malloc((n + 1) * sizeof(long));
+   columnM[m] = 0;
+   columnN[n] = 0;
+
+   for (int i = m - 1; i >= 0; i--)
+   {
+      columnM[i] = (isBase(A[i]) ? INSERTION_COST : 0) + columnM[i + 1];
+   }
+
+   for (int j = n - 1; j >= 0; j--)
+   {
+      columnN[j] = (isBase(B[j]) ? INSERTION_COST : 0) + columnN[j + 1];
+   }
+
+   long result = 0;
+   long mismatch_cost = 0;
+   long diagonal_element = 0;
+   long right_element = 0;
+
+   for (int outerJ = m - 1; outerJ >= 0; outerJ -= K)
+   {
+      for (int outerI = n - 1; outerI >= 0; outerI -= K)
+      {
+         right_element = columnN[outerI];
+         diagonal_element = columnN[outerI + 1];
+
+         int indexB = outerI;
+
+         while (indexB >= 0 && indexB > outerI - K)
+         {
+            if (isBase(B[indexB]))
+            {
+               int indexA = outerJ;
+               right_element = columnN[indexB];
+               diagonal_element = columnN[indexB + 1];
+
+               while (indexA >= 0 && indexA > outerJ - K)
+               {
+                  if (isBase(A[indexA]))
+                  {
+                     mismatch_cost = (isUnknownBase(A[indexA]) || !isSameBase(A[indexA], B[indexB])) ? 1 : 0;
+                     result = MIN(2 + columnM[indexA], 2 + right_element, diagonal_element + mismatch_cost);
+                     diagonal_element = columnM[indexA];
+                     right_element = result;
+                     columnM[indexA] = result;
+                  }
+                  indexA--;
+               }
+               columnN[indexB + 1] = diagonal_element;
+            }
+            else
+            {
+               columnN[indexB + 1] = columnM[outerJ < K ? 0 : outerJ - K + 1];
+            }
+            indexB--;
+         }
+      }
+   }
+
+   long final_result = columnM[0];
+   free(columnM);
+   free(columnN);
+   return final_result;
+}
+
+void  Process_Block(int start_blockA, int end_blockA, int start_blockB, int end_blockB, long *columnN, long *columnM, char *A, char *B)
+{
+    _init_base_match();
+    long right_element = 0;
+    long diagonal_element = 0;
+    int indexB = end_blockB;
+    long mismatch_cost = 0;
+    long result = 0;
+    while (indexB >= start_blockB) {
+        if (!isBase(B[indexB])) {
+            columnN[indexB + 1] = columnM[start_blockA];
+        } else {
+            int indexA = end_blockA;
+            right_element = columnN[indexB];
+            diagonal_element = columnN[indexB + 1];
+            while (indexA >= start_blockA) {
+                if (!isBase(A[indexA])) {
+                    columnM[indexA] = right_element;
+                } else {
+                    mismatch_cost = (isUnknownBase(A[indexA]) || !isSameBase(A[indexA], B[indexB])) ? 1 : 0;
+                    result = MIN(2 + columnM[indexA], 2 + right_element, diagonal_element + mismatch_cost);
+                    diagonal_element = columnM[indexA];
+                    right_element = result;
+                    columnM[indexA] = result;
+                }
+                --indexA;            
+            }
+            columnN[indexB + 1] = diagonal_element;
+        }
+        --indexB;
+    }
+}
+
+void EditDistance_NW_Oblivious_Rec(int start_blockA, int end_blockA, int start_blockB, int end_blockB, long *columnN, long *columnM, char *A, char *B)
+{
+   int n =  end_blockB - start_blockB;
+   int m =  end_blockA - start_blockA;
+   if (n <= S && m <= S){
+      Process_Block(start_blockA, end_blockA, start_blockB, end_blockB, columnN, columnM, A,B);
+   }else if (n > S){
+      int mid = end_blockB - n/2;
+      EditDistance_NW_Oblivious_Rec(start_blockA, end_blockA, mid  , end_blockB, columnN, columnM, A, B);
+      EditDistance_NW_Oblivious_Rec(start_blockA, end_blockA, start_blockB, mid - 1, columnN, columnM, A, B);
+   }else if ( m > S){
+      int mid = end_blockA - m/2;
+      EditDistance_NW_Oblivious_Rec(mid , end_blockA, start_blockB, end_blockB, columnN, columnM, A, B);
+      EditDistance_NW_Oblivious_Rec(start_blockA, mid - 1, start_blockB, end_blockB, columnN, columnM, A, B);
+   }
+}
+
+long EditDistance_NW_Oblivious(char *A, size_t lengthA, char *B, size_t lengthB)
+{
+   _init_base_match();
+   int n = (int) lengthB;
+   int m = (int) lengthA;
+   long *columnM = malloc((m + 1) * sizeof(long));
+   long *columnN = malloc((n + 1) * sizeof(long));
+   columnM[m] = 0;
+   columnN[n] = 0;
+   for (int i = m - 1; i >= 0; i--){
+      columnM[i] = (isBase(A[i]) ? INSERTION_COST : 0) + columnM[i + 1];
+   }
+   for (int j = n - 1; j >= 0; j--){
+      columnN[j] = (isBase(B[j]) ? INSERTION_COST : 0) + columnN[j + 1];
+   }
+   EditDistance_NW_Oblivious_Rec(0, m - 1, 0, n - 1, columnN, columnM, A, B);
+   long result = columnM[0];
+   free(columnM);
+   free(columnN);
+   return result;
+}
