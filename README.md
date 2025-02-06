@@ -37,7 +37,7 @@ ADN-Distance-Edition/
 Exemple :
 
 ```bash
-    ./bin/distanceEdition data/wuhan_hu_1.fasta 116 30331 data/ba52_recent_omicron.fasta 153 30183
+    ./bin/distanceEdition tests/wuhan_hu_1.fasta 116 30331 tests/ba52_recent_omicron.fasta 153 30183
 ```
 ## 🏆 Performance et Analyse
 Simulation des défauts de cache avec Valgrind
@@ -49,4 +49,3 @@ Optimisation SIMD pour réduire les accès mémoire
 Export des résultats en format standardisé (CSV, JSON)
 ## 👥 Équipe : 
 Mouez Jaafoura, Zine Ouadii
-
